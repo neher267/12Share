@@ -34,7 +34,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         loginButton.setOnClickListener(this);
         registrationButton.setOnClickListener(this);
-
     }
 
     private void init(){
@@ -49,8 +48,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (v.getId() == R.id.button_registration){
             startActivity(new Intent(MainActivity.this, RegistrationActivity.class));
         }else if(v.getId() == R.id.button_login){
+
+            //startActivity(new Intent(MainActivity.this, ShareActivity.class));
             attemptToLogin();
-            Toast.makeText(this, "Login Button is clicked.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Login..", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -99,7 +100,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         };
 
         MyRequestQueue.getInstance(MainActivity.this).addToRequestque(logInRequest);
-
 
     }
 
