@@ -39,6 +39,8 @@ import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -49,6 +51,7 @@ import com.google.android.gms.location.places.GeoDataClient;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.LocationSource;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
@@ -57,6 +60,10 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -67,7 +74,7 @@ import java.util.Map;
 
 public class ShareActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
-        OnMapReadyCallback, GoogleMap.OnMarkerClickListener, GoogleMap.OnMarkerDragListener{
+        OnMapReadyCallback, GoogleMap.OnMarkerClickListener, GoogleMap.OnMarkerDragListener, LocationSource.OnLocationChangedListener{
 
     private GoogleMap mMap;
     private static final String TAG = "MapsActivity";
@@ -82,6 +89,7 @@ public class ShareActivity extends AppCompatActivity
     private AutoCompleteTextView mSearchText;
     private ImageView mMyLocationView;
     protected GeoDataClient mGeoDataClient;
+    private ArrayList<CurrentRequest> currentRequests;
 
     private static final LatLngBounds LAT_LNG_BOUNDS = new LatLngBounds(new LatLng(20.797425846129503, 87.86243451562495), new LatLng(26.745824752661083, 92.70740521874995));
 
@@ -120,7 +128,17 @@ public class ShareActivity extends AppCompatActivity
                 //sendRequest();
                 if (lat != 0 && lng != 0 && des_lat != 0 && des_lng != 0 && countryCode != null){
                     Log.d(TAG, "onClick: all prams are ok");
-                    sendRequest();
+                    //sendRequest();
+
+                    Intent intent = new Intent(ShareActivity.this, ResultActivity.class);
+                    intent.putExtra("lat", lat);
+                    intent.putExtra("lng", lng);
+                    intent.putExtra("des_lat", des_lat);
+                    intent.putExtra("des_lng", des_lng);
+                    intent.putExtra("des_address", des_address);
+                    intent.putExtra("countryCode", countryCode);
+
+                    startActivity(intent);
                 }
 
             }
@@ -195,12 +213,7 @@ public class ShareActivity extends AppCompatActivity
         }else if (id == R.id.nav_term_con) {
 
         } else if (id == R.id.nav_sign_out) {
-            if(connectivity.getConnectionStatus())
-            {
-                //
-            }
-
-            editor.putString(Env.sp.access_token, "no");
+            editor.putString(Env.sp.access_token, "");
             editor.commit();
             startActivity(new Intent(this, MainActivity.class));
             finish();
@@ -235,6 +248,7 @@ public class ShareActivity extends AppCompatActivity
     private void init(){
         sharedPref = this.getSharedPreferences(Env.sp.sp_name, MODE_PRIVATE);
         editor = sharedPref.edit();
+        currentRequests = new ArrayList<>();
 
         navigationView = (NavigationView) findViewById(R.id.nav_view);
         View headerView = navigationView.getHeaderView(0);
@@ -425,27 +439,187 @@ public class ShareActivity extends AppCompatActivity
     private void sendRequest(){
         Log.d(TAG, "sendRequest: Send Request is calling");
 
-        StringRequest sharingRequest = new StringRequest(Request.Method.POST, Env.remote.sharing_request_url,
-                new Response.Listener<String>() {
+        /*JsonArrayRequest request = new JsonArrayRequest(Request.Method.POST, Env.remote.sharing_request_url, null,
+                new Response.Listener<JSONArray>() {
                     @Override
-                    public void onResponse(String response) {
+                    public void onResponse(JSONArray response) {
+                        Log.d(TAG, "onResponse: response:"+ response);
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.d(TAG, "onErrorResponse: VolleyError: "+error);
+                    }
+                })
+                {
+                    @Override
+                    public Map<String, String> getHeaders() throws AuthFailureError {
+
+                        return super.getHeaders();
+                    }
+
+                    @Override
+                    protected Map<String, String> getParams() throws AuthFailureError {
+                        Log.d(TAG, "getParams: getParams method is calling");
+                        Map<String,String> params = new HashMap<>();
+                        Log.d(TAG, "getParams: user name: "+ sharedPref.getString(Env.sp.user_mobile, ""));
+                        Log.d(TAG, "getParams: password: "+ sharedPref.getString(Env.sp.user_password, ""));
+                        params.put("username", sharedPref.getString(Env.sp.user_mobile, ""));
+                        params.put("password", sharedPref.getString(Env.sp.user_password, ""));
+                        params.put("share_with", sharedPref.getString(Env.sp.user_share_with, ""));
+                        params.put("lat", String.valueOf(lat));
+                        params.put("lng", String.valueOf(lng));
+                        params.put("des_lat", String.valueOf(des_lat));
+                        params.put("des_lng", String.valueOf(des_lng));
+                        params.put("country_code", countryCode);
+                        params.put("address", des_address);
+
+                        return params;
+                    }
+                };
+
+        MyRequestQueue.getInstance(ShareActivity.this).addToRequestque(request);*/
+
+
+        /*JsonObjectRequest sharingRequest =  new JsonObjectRequest(Request.Method.POST, Env.remote.sharing_request_url, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
                         Log.d(TAG, "onResponse: response: "+ response);
+                        try {
 
-                        /*SharedPreferences sharedPref = ShareActivity.this.getSharedPreferences(Env.sp.sp_name, Context.MODE_PRIVATE);
-                        SharedPreferences.Editor editor = sharedPref.edit();
-                        editor.putString(Env.sp.access_token, "yes");
-                        editor.commit();*/
+                            JSONArray jsonArray = response.getJSONArray("data");
+                            for (int i = 0; i<jsonArray.length(); i++)
+                            {
+                                JSONObject jsonObject = jsonArray.getJSONObject(i);
 
+                                double sharedLat = jsonObject.getDouble("lat");
+                                double sharedLng = jsonObject.getDouble("lng");
+                                double sharedDesLat = jsonObject.getDouble("des_lat");
+                                double sharedDesLng = jsonObject.getDouble("des_lng");
 
+                                float results[] = new float[10];
+                                Location.distanceBetween(lat, lng, sharedLat, sharedLng, results);
+                                Location.distanceBetween(des_lat, des_lng, sharedDesLat, sharedDesLng, results);
 
+                                float latLngDis = results[0];
+                                float desLatLngDis = results[0];
 
+                                if (latLngDis < 120)
+                                {
+                                    CurrentRequest currentRequest = new CurrentRequest(
+                                            jsonObject.getInt("user_id"),
+                                            sharedLat,
+                                            sharedLng,
+                                            sharedDesLat,
+                                            sharedDesLng,
+                                            latLngDis,
+                                            desLatLngDis
+                                    );
+                                    currentRequests.add(currentRequest);
+                                    Log.d(TAG, "onResponse: Total currentRequests: "+currentRequests.size());
+                                    Log.d(TAG, "onResponse: distances: "+ currentRequest.getDesLat()+" : "+currentRequest.getDesLatLngDis());
+                                }
+                            }
+
+                        } catch (JSONException e) {
+                            Log.d(TAG, "onResponse: JSONException: "+e.getMessage());
+                        }
 
                     }
                 },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        Log.d(TAG, "onErrorResponse: "+ error.getMessage());
+                        Log.d(TAG, ": "+ String.valueOf(error));
+                    }
+                })            {
+
+
+                @Override
+                protected Map<String, String> getParams() throws AuthFailureError {
+                    Map<String,String> params = new HashMap<>();
+                    Log.d(TAG, "getParams: user name: "+ sharedPref.getString(Env.sp.user_mobile, ""));
+                    Log.d(TAG, "getParams: password: "+ sharedPref.getString(Env.sp.user_password, ""));
+                    params.put("username", sharedPref.getString(Env.sp.user_mobile, ""));
+                    params.put("password", sharedPref.getString(Env.sp.user_password, ""));
+                    params.put("share_with", sharedPref.getString(Env.sp.user_share_with, ""));
+                    params.put("lat", String.valueOf(lat));
+                    params.put("lng", String.valueOf(lng));
+                    params.put("des_lat", String.valueOf(des_lat));
+                    params.put("des_lng", String.valueOf(des_lng));
+                    params.put("country_code", countryCode);
+                    params.put("address", des_address);
+
+                    return params;
+                }
+            };
+        MyRequestQueue.getInstance(ShareActivity.this).addToRequestque(sharingRequest);*/
+
+        StringRequest sharingRequest = new StringRequest(Request.Method.POST, Env.remote.sharing_request_url,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        Log.d(TAG, "onResponse: response: "+ response);
+                        try {
+
+                            JSONObject jsonObject1 = new JSONObject(response);
+                            JSONArray jsonArray = jsonObject1.getJSONArray("data");
+                            int index = 0;
+                            for (int i = 0; i<jsonArray.length(); i++)
+                            {
+                                JSONObject jsonObject = jsonArray.getJSONObject(i);
+
+                                double sharedLat = Double.valueOf(jsonObject.getString("lat"));
+                                double sharedLng = Double.valueOf(jsonObject.getString("lng"));
+                                double sharedDesLat = Double.valueOf(jsonObject.getString("des_lat"));
+                                double sharedDesLng = Double.valueOf(jsonObject.getString("des_lng"));
+
+                                float latLngDisResults[] = new float[10];
+                                float desLatLngDisResults[] = new float[10];
+                                Location.distanceBetween(lat, lng, sharedLat, sharedLng, latLngDisResults);
+                                Location.distanceBetween(des_lat, des_lng, sharedDesLat, sharedDesLng, desLatLngDisResults);
+
+                                float latLngDis = latLngDisResults[0];
+                                float desLatLngDis = desLatLngDisResults[0];
+
+                                if (latLngDis < 120 && desLatLngDis < 500)
+                                {
+                                    CurrentRequest currentRequest = new CurrentRequest(
+                                            jsonObject.getInt("user_id"),
+                                            sharedLat,
+                                            sharedLng,
+                                            sharedDesLat,
+                                            sharedDesLng,
+                                            latLngDis,
+                                            desLatLngDis
+                                    );
+                                    currentRequests.add(currentRequest);
+                                    Log.d(TAG, "onResponse: distances: "+ currentRequest.getLatLngDis()+" : "+currentRequest.getDesLatLngDis());
+
+                                }
+                            }
+
+                            if (currentRequests.size()>1){
+                                for(CurrentRequest request: currentRequests){
+                                    Log.d(TAG, "onResponse: ");
+                                }
+
+                            }
+
+                            Log.d(TAG, "onResponse: Total currentRequests: "+currentRequests.size());
+
+                        } catch (JSONException e) {
+                            Log.d(TAG, "onResponse: JSONException: "+e.getMessage());
+                        }
+
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Log.d(TAG, "onErrorResponse: "+ String.valueOf(error));
                     }
                 })
         {
@@ -453,15 +627,17 @@ public class ShareActivity extends AppCompatActivity
             protected Map<String, String> getParams() throws AuthFailureError {
                 Map<String,String> params = new HashMap<>();
                 SharedPreferences sharedPref = ShareActivity.this.getSharedPreferences(Env.sp.sp_name, Context.MODE_PRIVATE);
-                params.put("username", "01784255196");
-                params.put("password", "123456");
+                Log.d(TAG, "getParams: user name: "+ sharedPref.getString(Env.sp.user_mobile, ""));
+                Log.d(TAG, "getParams: password: "+ sharedPref.getString(Env.sp.user_password, ""));
+                params.put("username", sharedPref.getString(Env.sp.user_mobile, ""));
+                params.put("password", sharedPref.getString(Env.sp.user_password, ""));
+                params.put("share_with", sharedPref.getString(Env.sp.user_share_with, ""));
                 params.put("lat", String.valueOf(lat));
                 params.put("lng", String.valueOf(lng));
                 params.put("des_lat", String.valueOf(des_lat));
                 params.put("des_lng", String.valueOf(des_lng));
                 params.put("country_code", countryCode);
                 params.put("address", des_address);
-                params.put("status", "1");
 
                 return params;
             }
@@ -527,11 +703,14 @@ public class ShareActivity extends AppCompatActivity
         try {
             mMap.clear();
             addresses = geocoder.getFromLocation(des_lat, des_lng, 1); // Here 1 represent max location result to returned, by documents it recommended 1 to 5
+            Log.d(TAG, "onMarkerDragEnd: address: "+addresses);
             String address = addresses.get(0).getAddressLine(0);
             MarkerOptions options = new MarkerOptions()
                     .position(new LatLng(des_lat, des_lng))
                     .title(address);
             mMap.addMarker(options);
+
+            des_address = address;
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -554,5 +733,13 @@ public class ShareActivity extends AppCompatActivity
     public boolean onMarkerClick(Marker marker) {
         marker.setDraggable(true);
         return false;
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        Toast.makeText(this, "Location changed", Toast.LENGTH_SHORT).show();
+        Log.d(TAG, "onLocationChanged: latlng: "+location.getLatitude()+":"+location.getLongitude());
+        lat = location.getLatitude();
+        lng = location.getLongitude();
     }
 }

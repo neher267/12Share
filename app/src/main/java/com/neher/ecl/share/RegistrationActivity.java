@@ -98,7 +98,8 @@ public class RegistrationActivity extends AppCompatActivity {
                         editor.putString(Env.sp.user_gender, gender);
                         editor.putInt(Env.sp.user_age, age);
                         editor.putString(Env.sp.user_password, password);
-                        editor.putString(Env.sp.access_token, "yes");
+                        editor.putString(Env.sp.user_share_with, shareWith);
+                        editor.putString(Env.sp.access_token, Env.sp.access_token_yes);
                         editor.commit();
                         startActivity(new Intent(RegistrationActivity.this, ShareActivity.class));
                         finish();
@@ -137,10 +138,10 @@ public class RegistrationActivity extends AppCompatActivity {
 
         if(R.id.gender_male == genderView.getCheckedRadioButtonId())
         {
-            gender = "Male";
+            gender = Env.user.male;
         }
         else if(R.id.gender_female == genderView.getCheckedRadioButtonId()){
-            gender = "Female";
+            gender = Env.user.female;
         }
         return gender;
     }
@@ -150,13 +151,13 @@ public class RegistrationActivity extends AppCompatActivity {
 
         if(R.id.share_male == shareWithView.getCheckedRadioButtonId())
         {
-            shareWith = "Male";
+            shareWith = Env.user.male;
         }
         else if(R.id.share_female == shareWithView.getCheckedRadioButtonId()){
-            shareWith = "Female";
+            shareWith = Env.user.female;
         }
         else if(R.id.share_both == shareWithView.getCheckedRadioButtonId()){
-            shareWith = "Both";
+            shareWith = Env.user.both;
         }
         return shareWith;
     }

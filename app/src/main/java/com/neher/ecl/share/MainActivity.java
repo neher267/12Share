@@ -17,6 +17,9 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,6 +27,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private Button loginButton, registrationButton;
     private EditText mobileView, passwordView;
+    private SharedPreferences sharedPref;
     private static final String TAG = "MainActivity";
 
     @Override
@@ -32,11 +36,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         init();
 
+        if(sharedPref.getString(Env.sp.access_token, "").equals(Env.sp.access_token_yes)){
+            startActivity(new Intent(MainActivity.this, ShareActivity.class));
+        }
+
         loginButton.setOnClickListener(this);
         registrationButton.setOnClickListener(this);
     }
 
     private void init(){
+        sharedPref = this.getSharedPreferences(Env.sp.sp_name, Context.MODE_PRIVATE);
         mobileView = findViewById(R.id.edit_text_mobile);
         passwordView = findViewById(R.id.edit_text_password);
         loginButton = findViewById(R.id.button_login);
@@ -48,9 +57,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (v.getId() == R.id.button_registration){
             startActivity(new Intent(MainActivity.this, RegistrationActivity.class));
         }else if(v.getId() == R.id.button_login){
-
-            startActivity(new Intent(MainActivity.this, ShareActivity.class));
-            //attemptToLogin();
+            attemptToLogin();
             Toast.makeText(this, "Login..", Toast.LENGTH_LONG).show();
         }
     }
@@ -63,33 +70,46 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        Log.d(TAG, response);
-
+                        Log.d(TAG, "onResponse: success: "+ response);
                         SharedPreferences sharedPref = MainActivity.this.getSharedPreferences(Env.sp.sp_name, Context.MODE_PRIVATE);
                         SharedPreferences.Editor editor = sharedPref.edit();
+                        JSONObject jsonObject = null;
 
-                        /*editor.putString(Env.sp.user_name, name);
-                        editor.putString(Env.sp.user_gender, gender);
-                        editor.putInt(Env.sp.user_age, age);*/
+                        try {
+                            jsonObject = new JSONObject(response);
+                            JSONObject object = jsonObject.getJSONObject("data");
+                            if (object != null)
+                            {
+                                editor.putString(Env.sp.user_name, object.getString(Env.sp.user_name));
+                                editor.putString(Env.sp.user_gender, object.getString(Env.sp.user_gender));
+                                editor.putString(Env.sp.user_age, object.getString(Env.sp.user_age));
+                                editor.putString(Env.sp.user_share_with, object.getString(Env.sp.user_share_with));
+                                editor.putString(Env.sp.user_mobile, mobile);
+                                editor.putString(Env.sp.user_password, password);
+                                editor.putString(Env.sp.access_token, Env.sp.access_token_yes);
+                                editor.commit();
 
-                        editor.putString(Env.sp.user_mobile, mobile);
-                        editor.putString(Env.sp.user_password, password);
-                        editor.putString(Env.sp.access_token, "yes");
-                        editor.commit();
-                        startActivity(new Intent(MainActivity.this, ShareActivity.class));
-                        finish();
+                                startActivity(new Intent(MainActivity.this, ShareActivity.class));
+                                finish();
+                            }
+                        } catch (JSONException e) {
+                            Log.d(TAG, "onResponse: jesson exception: "+e.getMessage());
+                        } catch (NullPointerException e){
+                            Log.d(TAG, "onResponse: exception: "+e.getMessage());
+                        }
+
                     }
                 },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        error.printStackTrace();
-                        Log.d(TAG, String.valueOf(error));
+                        Log.d(TAG, "onErrorResponse: volly error: "+ error.getMessage());
                     }
                 })
         {
             @Override
             protected Map<String, String> getParams() throws AuthFailureError {
+                Log.d(TAG, "getParams: AuthFailureError: ");
                 Map<String,String> params = new HashMap<>();
 
                 params.put("username", mobile);
