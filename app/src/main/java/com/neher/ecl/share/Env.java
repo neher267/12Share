@@ -3,9 +3,14 @@ package com.neher.ecl.share;
 public class Env {
 
     public static final class remote{
-        public static final String register_url = "http://139.162.60.218/test/public/index.php/api/register";
+        public static final String register_url = "http://192.168.1.103/share/public/index.php/api/register";
+        public static final String login_url = "http://192.168.1.103/share/public/index.php/api/login";
+        public static final String sharing_request_url = "http://192.168.1.103/share/public/index.php/api/sharing-request";
+
+
+        /*public static final String register_url = "http://139.162.60.218/test/public/index.php/api/register";
         public static final String login_url = "http://139.162.60.218/test/public/index.php/api/login";
-        public static final String sharing_request_url = "http://139.162.60.218/test/public/index.php/api/sharing-request";
+        public static final String sharing_request_url = "http://139.162.60.218/test/public/index.php/api/sharing-request";*/
     }
 
     public static final class sp{

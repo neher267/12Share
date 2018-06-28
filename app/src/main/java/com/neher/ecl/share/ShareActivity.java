@@ -62,6 +62,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class ShareActivity extends AppCompatActivity
@@ -92,6 +93,9 @@ public class ShareActivity extends AppCompatActivity
     private NavigationView navigationView;
     private Connectivity connectivity;
 
+    private double lat, lng, des_lat, des_lng;
+    private String countryCode, des_address;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,7 +110,18 @@ public class ShareActivity extends AppCompatActivity
             public void onClick(View view) {
                 /*Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();*/
-                sendRequest();
+
+                Log.d(TAG, "onClick: params: lat: "+String.valueOf(lat)+
+                " lng: "+String.valueOf(lng)+
+                " des lat: "+String.valueOf(des_lat)+
+                " des lng: "+String.valueOf(des_lng)+
+                " address: "+String.valueOf(des_address)
+                );
+                //sendRequest();
+                if (lat != 0 && lng != 0 && des_lat != 0 && des_lng != 0 && countryCode != null){
+                    Log.d(TAG, "onClick: all prams are ok");
+                    sendRequest();
+                }
 
             }
         });
@@ -196,6 +211,27 @@ public class ShareActivity extends AppCompatActivity
         return true;
     }
 
+    /**
+     * Manipulates the map once available.
+     * This callback is triggered when the map is ready to be used.
+     */
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
+
+        if (mLocationPermissionGranted || Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            getDeviceLocation();
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "onMapReady: location permission is not granted");
+                return;
+            }
+            mMap.setMyLocationEnabled(true);
+            mMap.getUiSettings().setMyLocationButtonEnabled(false);
+            mMap.setOnMarkerClickListener(this);
+            mMap.setOnMarkerDragListener(this);
+        }
+    }
+
     private void init(){
         sharedPref = this.getSharedPreferences(Env.sp.sp_name, MODE_PRIVATE);
         editor = sharedPref.edit();
@@ -283,7 +319,11 @@ public class ShareActivity extends AppCompatActivity
             if (address.hasLatitude() && address.hasLongitude()){
                 Log.d(TAG, "geoLocate: has latitude and longitude");
 
-                address.getAdminArea();
+                des_lat = address.getLatitude();
+                des_lng = address.getLongitude();
+                countryCode = address.getCountryCode();
+                des_address = address.getAddressLine(0);
+
 
                 LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
                 moveCamera(latLng, DEFAULT_ZOOM, address.getAddressLine(0));
@@ -293,27 +333,6 @@ public class ShareActivity extends AppCompatActivity
             }
         }
 
-    }
-
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     */
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
-
-        if (mLocationPermissionGranted || Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            getDeviceLocation();
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                Log.d(TAG, "onMapReady: location permission is not granted");
-                return;
-            }
-            mMap.setMyLocationEnabled(true);
-            mMap.getUiSettings().setMyLocationButtonEnabled(false);
-            mMap.setOnMarkerClickListener(this);
-            mMap.setOnMarkerDragListener(this);
-        }
     }
 
     private void getDeviceLocation(){
@@ -332,6 +351,9 @@ public class ShareActivity extends AppCompatActivity
                         if (task.isSuccessful()){
                             Log.d(TAG, "onComplete: Find Location");
                             Location currentLocation = (Location) task.getResult();
+                            lat = currentLocation.getLatitude();
+                            lng = currentLocation.getLongitude();
+
                             moveCamera(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), DEFAULT_ZOOM, "My Location");
 
                         }
@@ -401,11 +423,13 @@ public class ShareActivity extends AppCompatActivity
 
 
     private void sendRequest(){
+        Log.d(TAG, "sendRequest: Send Request is calling");
+
         StringRequest sharingRequest = new StringRequest(Request.Method.POST, Env.remote.sharing_request_url,
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        Log.d(TAG, response);
+                        Log.d(TAG, "onResponse: response: "+ response);
 
                         /*SharedPreferences sharedPref = ShareActivity.this.getSharedPreferences(Env.sp.sp_name, Context.MODE_PRIVATE);
                         SharedPreferences.Editor editor = sharedPref.edit();
@@ -414,13 +438,14 @@ public class ShareActivity extends AppCompatActivity
 
 
 
+
+
                     }
                 },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        error.printStackTrace();
-                        Log.d(TAG, String.valueOf(error));
+                        Log.d(TAG, "onErrorResponse: "+ error.getMessage());
                     }
                 })
         {
@@ -428,10 +453,15 @@ public class ShareActivity extends AppCompatActivity
             protected Map<String, String> getParams() throws AuthFailureError {
                 Map<String,String> params = new HashMap<>();
                 SharedPreferences sharedPref = ShareActivity.this.getSharedPreferences(Env.sp.sp_name, Context.MODE_PRIVATE);
-                params.put("username", sharedPref.getString("mobile", ""));
-                params.put("password", sharedPref.getString("password", ""));
-                params.put("user_lat", sharedPref.getString("password", ""));
-                params.put("password", sharedPref.getString("password", ""));
+                params.put("username", "01784255196");
+                params.put("password", "123456");
+                params.put("lat", String.valueOf(lat));
+                params.put("lng", String.valueOf(lng));
+                params.put("des_lat", String.valueOf(des_lat));
+                params.put("des_lng", String.valueOf(des_lng));
+                params.put("country_code", countryCode);
+                params.put("address", des_address);
+                params.put("status", "1");
 
                 return params;
             }
@@ -483,11 +513,40 @@ public class ShareActivity extends AppCompatActivity
 
     @Override
     public void onMarkerDrag(Marker marker) {
-
+        //Toast.makeText(this, marker.getPosition().toString(), Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void onMarkerDragEnd(Marker marker) {
+        des_lat = marker.getPosition().latitude;
+        des_lng = marker.getPosition().longitude;
+        Geocoder geocoder;
+        List<Address> addresses;
+        geocoder = new Geocoder(this, Locale.getDefault());
+
+        try {
+            mMap.clear();
+            addresses = geocoder.getFromLocation(des_lat, des_lng, 1); // Here 1 represent max location result to returned, by documents it recommended 1 to 5
+            String address = addresses.get(0).getAddressLine(0);
+            MarkerOptions options = new MarkerOptions()
+                    .position(new LatLng(des_lat, des_lng))
+                    .title(address);
+            mMap.addMarker(options);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        /*String address = addresses.get(0).getAddressLine(0); // If any additional address line present than only, check with max available address lines by getMaxAddressLineIndex()
+        String city = addresses.get(0).getLocality();
+        String state = addresses.get(0).getAdminArea();
+        String country = addresses.get(0).getCountryName();
+        String postalCode = addresses.get(0).getPostalCode();
+        String knownName = addresses.get(0).getFeatureName()*/;
+
+
+
+
 
     }
 

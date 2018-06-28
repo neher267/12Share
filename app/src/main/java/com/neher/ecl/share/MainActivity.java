@@ -49,8 +49,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             startActivity(new Intent(MainActivity.this, RegistrationActivity.class));
         }else if(v.getId() == R.id.button_login){
 
-            //startActivity(new Intent(MainActivity.this, ShareActivity.class));
-            attemptToLogin();
+            startActivity(new Intent(MainActivity.this, ShareActivity.class));
+            //attemptToLogin();
             Toast.makeText(this, "Login..", Toast.LENGTH_LONG).show();
         }
     }
